@@ -53,10 +53,7 @@ class Team(db.Model):
     # Relation d'association avec les utilisateurs (many-to-many)
     managers = db.relationship('User', secondary='user_team_association', back_populates='managed_teams')
     
-    # Relation d'agrégation avec les matchs (one-to-many)
-    home_games = db.relationship('Game', foreign_keys='Game.home_team_id', backref='home_team', lazy=True)
-    away_games = db.relationship('Game', foreign_keys='Game.away_team_id', backref='away_team', lazy=True)
-
+    
 # Table d'association pour User-Team (relation many-to-many)
 user_team_association = db.Table('user_team_association',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
@@ -66,16 +63,15 @@ user_team_association = db.Table('user_team_association',
 # Modèle joueur (hérite de Statistics)
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    position = db.Column(db.String(20))
-    height = db.Column(db.String(10))
-    weight = db.Column(db.Integer)
-    birth_date = db.Column(db.Date)
-    nationality = db.Column(db.String(50))
-    nba_debut = db.Column(db.Integer)
-    jersey_number = db.Column(db.Integer)
+    first_name = db.Column(db.String(50), nullable=False)
+    last_name = db.Column(db.String(50), nullable=False)
+    position = db.Column(db.String(10))
+    height_feet = db.Column(db.Integer)
+    height_inches = db.Column(db.Integer)
+    weight_pounds = db.Column(db.Integer)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     
     # Statistiques (composition avec Statistics)
     points_per_game = db.Column(db.Float, default=0.0)
@@ -106,15 +102,19 @@ class Player(db.Model):
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False)
-    home_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
-    away_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
-    home_score = db.Column(db.Integer, default=0)
-    away_score = db.Column(db.Integer, default=0)
-    status = db.Column(db.String(20), default='scheduled')  # scheduled, live, finished
-    season = db.Column(db.String(10))
+    season = db.Column(db.Integer)
+    period = db.Column(db.Integer)
+    status = db.Column(db.String(50))
+    home_team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
+    visitor_team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
+    home_team_score = db.Column(db.Integer)
+    visitor_team_score = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Relation d'agrégation avec les performances (one-to-many)
+
+    # Relations avec Team
+    home_team = db.relationship('Team', foreign_keys=[home_team_id], backref='home_games')
+    visitor_team = db.relationship('Team', foreign_keys=[visitor_team_id], backref='visitor_games')
+
     performances = db.relationship('PlayerPerformance', backref='game', lazy=True, cascade='all, delete-orphan')
 
 # Modèle performance de joueur (hérite de Statistics)

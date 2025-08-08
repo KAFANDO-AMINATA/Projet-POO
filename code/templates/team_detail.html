@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Détails de l'équipe{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if team %}
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2>{{ team.full_name }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Informations</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item"><strong>Ville:</strong> {{ team.city }}</li>
+                        <li class="list-group-item"><strong>Conférence:</strong> {{ team.conference }}</li>
+                        <li class="list-group-item"><strong>Division:</strong> {{ team.division }}</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h4>Joueurs</h4>
+                    <div class="list-group">
+                        {% for player in team.players %}
+                        <a href="{{ url_for('player_detail', player_id=player.id) }}" class="list-group-item list-group-item-action">
+                            {{ player.first_name }} {{ player.last_name }} - {{ player.position }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <h4>Derniers matchs</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Domicile</th>
+                                <th>Score</th>
+                                <th>Extérieur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for game in recent_games %}
+                            <tr>
+                                <td>{{ game.date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ game.home_team.name }}</td>
+                                <td>{{ game.home_team_score }} - {{ game.visitor_team_score }}</td>
+                                <td>{{ game.visitor_team.name }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        Équipe non trouvée.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -10,9 +10,12 @@
                 <h1 class="h3 mb-0">
                     <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                 </h1>
-                <a href="{{ url_for('sync_data') }}" class="btn btn-primary">
-                    <i class="fas fa-sync-alt me-2"></i>Synchroniser les données
-                </a>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('sync_data') }}" class="btn btn-primary">
+                        <i class="fas fa-sync-alt me-2"></i>Synchroniser les données
+                    </a>
+                
+                </div>
             </div>
         </div>
     </div>
@@ -97,7 +100,7 @@
                     <div class="row g-3">
                         <div class="col-md-3">
                             <a href="{{ url_for('teams') }}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-users me-2"></i>Voir les équipes
+                                <i class="fas fa-users me-2"></i>Voir les équipes NBA (API)
                             </a>
                         </div>
                         <div class="col-md-3">
@@ -147,10 +150,12 @@
                                 {% for game in recent_games %}
                                 <tr>
                                     <td>{{ game.date.strftime('%d/%m/%Y %H:%M') }}</td>
-                                    <td>{{ game.home_team.name }}</td>
-                                    <td>{{ game.away_team.name }}</td>
+                                    <td>{{ game.home_team.name if game.home_team else 'N/A' }}</td>
+                                    <td>{{ game.visitor_team.name if game.visitor_team else 'N/A' }}</td>
                                     <td>
-                                        <span class="badge bg-primary">{{ game.home_score }} - {{ game.away_score }}</span>
+                                        <span class="badge bg-primary">
+                                            {{ game.home_team_score }} - {{ game.visitor_team_score }}
+                                        </span>
                                     </td>
                                     <td>
                                         {% if game.status == 'finished' %}
@@ -164,6 +169,7 @@
                                 </tr>
                                 {% endfor %}
                             </tbody>
+                            
                         </table>
                     </div>
                     {% else %}

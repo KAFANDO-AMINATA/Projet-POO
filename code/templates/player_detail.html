@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Détails du joueur{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if player %}
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2>{{ player.first_name }} {{ player.last_name }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Informations</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item"><strong>Équipe:</strong> 
+                            <a href="{{ url_for('nba_api.team_details', team_id=player.team.id) }}">
+                                {{ player.team.name }}
+                            </a>
+                        </li>
+                        <li class="list-group-item"><strong>Position:</strong> {{ player.position }}</li>
+                        <li class="list-group-item"><strong>Taille:</strong> 
+                            {% if player.height_feet %}
+                                {{ player.height_feet }}' {{ player.height_inches }}"
+                            {% else %}
+                                Non disponible
+                            {% endif %}
+                        </li>
+                        <li class="list-group-item"><strong>Poids:</strong> 
+                            {% if player.weight_pounds %}
+                                {{ player.weight_pounds }} lbs
+                            {% else %}
+                                Non disponible
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h4>Statistiques moyennes</h4>
+                    {% if stats %}
+                    <ul class="list-group">
+                        <li class="list-group-item"><strong>Points:</strong> {{ "%.1f"|format(stats.pts) }}</li>
+                        <li class="list-group-item"><strong>Rebonds:</strong> {{ "%.1f"|format(stats.reb) }}</li>
+                        <li class="list-group-item"><strong>Passes:</strong> {{ "%.1f"|format(stats.ast) }}</li>
+                        <li class="list-group-item"><strong>Interceptions:</strong> {{ "%.1f"|format(stats.stl) }}</li>
+                        <li class="list-group-item"><strong>Contres:</strong> {{ "%.1f"|format(stats.blk) }}</li>
+                    </ul>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Aucune statistique disponible.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h4>Derniers matchs</h4>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Match</th>
+                                <th>Min</th>
+                                <th>Pts</th>
+                                <th>Reb</th>
+                                <th>Ast</th>
+                                <th>Stl</th>
+                                <th>Blk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for game in recent_games %}
+                            <tr>
+                                <td>{{ game.game.date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ game.game.home_team.name }} vs {{ game.game.visitor_team.name }}</td>
+                                <td>{{ game.min }}</td>
+                                <td>{{ game.pts }}</td>
+                                <td>{{ game.reb }}</td>
+                                <td>{{ game.ast }}</td>
+                                <td>{{ game.stl }}</td>
+                                <td>{{ game.blk }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        Joueur non trouvé.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

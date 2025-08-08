@@ -5,7 +5,12 @@ from models import User, Team, Player, Game, PlayerPerformance, Notification
 from services import NBAApiService, NotificationService, DataSyncService
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+import requests
+from flask import render_template
+from flask_login import login_required
+from app import app
+from balldontlie_service import BalldontlieService
 
 # Services
 nba_api = NBAApiService()
@@ -86,7 +91,7 @@ def dashboard():
     # Statistiques pour le dashboard
     total_teams = Team.query.count()
     total_players = Player.query.count()
-    recent_games = Game.query.order_by(Game.date.desc()).limit(5).all()
+    recent_games = Game.query.order_by(Game.date.desc()).limit(10).all()
     
     # Notifications non lues
     unread_notifications = NotificationService.get_user_notifications(
@@ -99,12 +104,13 @@ def dashboard():
                          recent_games=recent_games,
                          unread_notifications=unread_notifications)
 
+
 @app.route('/teams')
 @login_required
 def teams():
-    """Liste des équipes"""
     teams = Team.query.all()
     return render_template('teams.html', teams=teams)
+
 
 @app.route('/team/<int:team_id>')
 @login_required
@@ -113,7 +119,7 @@ def team_detail(team_id):
     team = Team.query.get_or_404(team_id)
     players = Player.query.filter_by(team_id=team_id).all()
     games = Game.query.filter(
-        (Game.home_team_id == team_id) | (Game.away_team_id == team_id)
+        (Game.home_team_id == team_id) | (Game.home_team_id== team_id)
     ).order_by(Game.date.desc()).limit(10).all()
     
     return render_template('team_detail.html', team=team, players=players, games=games)
@@ -121,15 +127,22 @@ def team_detail(team_id):
 @app.route('/players')
 @login_required
 def players():
-    """Liste des joueurs"""
+    """Liste des joueurs, option de filtrage par équipe"""
     team_id = request.args.get('team_id', type=int)
+    
     if team_id:
         players = Player.query.filter_by(team_id=team_id).all()
     else:
         players = Player.query.all()
     
     teams = Team.query.all()
-    return render_template('players.html', players=players, teams=teams, selected_team=team_id)
+    
+    return render_template(
+        'players.html',
+        players=players,
+        teams=teams,
+        selected_team=team_id
+    )
 
 @app.route('/player/<int:player_id>')
 @login_required
@@ -143,17 +156,17 @@ def player_detail(player_id):
 @app.route('/games')
 @login_required
 def games():
-    """Liste des matchs"""
-    team_id = request.args.get('team_id', type=int)
-    if team_id:
-        games = Game.query.filter(
-            (Game.home_team_id == team_id) | (Game.away_team_id == team_id)
-        ).order_by(Game.date.desc()).all()
-    else:
-        games = Game.query.order_by(Game.date.desc()).all()
-    
-    teams = Team.query.all()
-    return render_template('games.html', games=games, teams=teams, selected_team=team_id)
+    # On récupère simplement les matchs les plus récents
+    games = get_recent_games()
+    current_date = datetime.utcnow()  # juste pour l'afficher dans la page
+
+    return render_template('games.html', current_date=current_date, games=games)
+
+
+def get_recent_games(limit=20):
+    return Game.query.order_by(Game.date.desc()).limit(limit).all()
+
+
 
 @app.route('/add_player', methods=['GET', 'POST'])
 @login_required
@@ -264,18 +277,18 @@ def edit_profile():
     return render_template('edit_profile.html', user=current_user)
 
 # Routes API pour les données
-@app.route('/api/teams')
-@login_required
-def api_teams():
-    """API pour récupérer les équipes"""
-    teams = Team.query.all()
-    return jsonify([{
-        'id': team.id,
-        'name': team.name,
-        'city': team.city,
-        'conference': team.conference,
-        'division': team.division
-    } for team in teams])
+# @app.route('/api/teams')
+# @login_required
+# def api_teams():
+#     """API pour récupérer les équipes"""
+#     teams = Team.query.all()
+#     return jsonify([{
+#         'id': team.id,
+#         'name': team.name,
+#         'city': team.city,
+#         'conference': team.conference,
+#         'division': team.division
+#     } for team in teams])
 
 @app.route('/api/players')
 @login_required
@@ -297,17 +310,34 @@ def api_players():
         'rebounds_per_game': player.rebounds_per_game
     } for player in players])
 
+
 @app.route('/api/games')
 @login_required
 def api_games():
-    """API pour récupérer les matchs"""
-    games = Game.query.order_by(Game.date.desc()).limit(20).all()
-    return jsonify([{
-        'id': game.id,
-        'date': game.date.isoformat(),
-        'home_team': game.home_team.name,
-        'away_team': game.away_team.name,
-        'home_score': game.home_score,
-        'away_score': game.away_score,
-        'status': game.status
-    } for game in games]) 
+    """API pour récupérer les matchs récents"""
+    
+    # Détection automatique de la saison en cours
+    today = datetime.utcnow()
+    season_start = datetime(today.year if today.month >= 10 else today.year - 1, 10, 1)
+
+    # On prend uniquement les matchs depuis le début de la saison
+    games = (
+        Game.query
+        .filter(Game.date >= season_start)
+        .order_by(Game.date.desc())
+        .limit(20)
+        .all()
+    )
+
+    return jsonify([
+        {
+            'id': game.id,
+            'date': game.date.isoformat(),
+            'home_team': game.home_team.name if game.home_team else None,
+            'visitor_team': game.visitor_team.name if game.visitor_team else None,
+            'home_score': game.home_team_score,
+            'visitor_score': game.visitor_team_score,
+            'status': game.status
+        }
+        for game in games
+    ])

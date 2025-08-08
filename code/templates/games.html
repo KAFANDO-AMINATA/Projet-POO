@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Matchs NBA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2>Matchs NBA</h2>
+            <div>
+                <button class="btn btn-light" id="prevDate">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="mx-3" id="currentDate">{{ current_date.strftime('%d/%m/%Y') }}</span>
+                <button class="btn btn-light" id="nextDate">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if games %}
+            <div class="row">
+                {% for game in games %}
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            {{ game.date}}
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-center text-center">
+                                <div class="col">
+                                    <a href="{{ url_for('team_detail', team_id=game.home_team.id) }}" class="text-decoration-none">
+                                        <h5>{{ game.home_team.name }}</h5>
+                                    </a>
+                                </div>
+                                <div class="col-4">
+                                    <h3>
+                                        {% if game.status == "Final" %}
+                                            {{ game.home_team_score }} - {{ game.visitor_team_score }}
+                                        {% else %}
+                                            vs
+                                        {% endif %}
+                                    </h3>
+                                    <small class="text-muted">{{ game.status }}</small>
+                                </div>
+                                <div class="col">
+                                    <a href="{{ url_for('team_detail', team_id=game.visitor_team.id) }}" class="text-decoration-none">
+                                        <h5>{{ game.visitor_team.name }}</h5>
+                                    </a>
+                                </div>
+                            </div>
+
+                            {% if game.status == "Final" and game.stats %}
+                            <div class="mt-3">
+                                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#stats-{{ game.id }}" aria-expanded="false" aria-controls="stats-{{ game.id }}">
+                                    Voir les statistiques
+                                </button>
+                                <div class="collapse mt-2" id="stats-{{ game.id }}">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Joueur</th>
+                                                    <th>Min</th>
+                                                    <th>Pts</th>
+                                                    <th>Reb</th>
+                                                    <th>Ast</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for stat in game.stats[:5] %}
+                                                <tr>
+                                                    <td>
+                                                        <a href="{{ url_for('player_detail', player_id=stat.player.id) }}">
+                                                            {{ stat.player.last_name }}
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ stat.min }}</td>
+                                                    <td>{{ stat.pts }}</td>
+                                                    <td>{{ stat.reb }}</td>
+                                                    <td>{{ stat.ast }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                Aucun match prévu pour cette date.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const currentDateElem = document.getElementById('currentDate');
+    const prevDateBtn = document.getElementById('prevDate');
+    const nextDateBtn = document.getElementById('nextDate');
+
+    // Parse date string "dd/mm/yyyy" safely
+    const [day, month, year] = currentDateElem.textContent.split('/');
+    let currentDate = new Date(year, month - 1, day);
+
+    function updateGames(date) {
+        // Construire l'URL avec la date en format ISO YYYY-MM-DD
+        const baseUrl = "{{ url_for('api_games') }}";
+        const formattedDate = date.toISOString().split('T')[0];
+        window.location.href = `${baseUrl}?date=${formattedDate}`;
+    }
+
+    prevDateBtn.addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() - 1);
+        updateGames(currentDate);
+    });
+
+    nextDateBtn.addEventListener('click', () => {
+        currentDate.setDate(currentDate.getDate() + 1);
+        updateGames(currentDate);
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}
