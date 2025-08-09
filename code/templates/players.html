@@ -72,9 +72,9 @@
                                     <th>Nom</th>
                                     <th>Équipe</th>
                                     <th>Position</th>
-                                    <th>Points/Match</th>
-                                    <th>Passes/Match</th>
-                                    <th>Rebonds/Match</th>
+                                    <th>Taille (pieds)</th>
+                                    <th>Taille (pouces)</th>
+                                    <th>Poids (livres)</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -82,7 +82,7 @@
                                 {% for player in players %}
                                 <tr>
                                     <td>
-                                        <strong>{{ player.name }}</strong>
+                                        <strong>{{ player.first_name }} {{ player.last_name }}</strong>
                                         {% if player.jersey_number %}
                                         <span class="badge bg-secondary">#{{ player.jersey_number }}</span>
                                         {% endif %}
@@ -95,9 +95,9 @@
                                         <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ "%.1f"|format(player.points_per_game) }}</td>
-                                    <td>{{ "%.1f"|format(player.assists_per_game) }}</td>
-                                    <td>{{ "%.1f"|format(player.rebounds_per_game) }}</td>
+                                    <td>{{player.height_feet}}</td>
+                                    <td>{{player.height_inches}}</td>
+                                    <td>{{player.weight_pounds}}</td>
                                     <td>
                                         <a href="{{ url_for('player_detail', player_id=player.id) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>

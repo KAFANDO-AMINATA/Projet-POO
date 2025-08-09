@@ -95,37 +95,57 @@ def init_database():
         else:
             has_more = False
 
+    
+# Pagination initiale
     page = 1
-    per_page = 100
+    per_page = 100  # maximum autorisé par l'API
     has_more = True
-    season = get_current_nba_season()
 
     while has_more:
-        games_data = BalldontlieService.get_games(season=season, page=page, per_page=per_page)
-        games = games_data.get("data", [])
+        players_data = BalldontlieService.get_players(page=page, per_page=per_page)
+        players = players_data.get("data", [])
 
-        for game_data in games:
-            game = Game(
-                id=game_data['id'],
-                date=datetime.fromisoformat(game_data['date'].replace("Z", "+00:00")),
-                season=game_data['season'],
-                period=game_data['period'],
-                status=game_data['status'],
-                home_team_id=game_data['home_team']['id'] if game_data.get('home_team') else None,
-                home_team_score=game_data['home_team_score'],
-                visitor_team_id=game_data['visitor_team']['id'] if game_data.get('visitor_team') else None,
-                visitor_team_score=game_data['visitor_team_score'],
+        for p in players:
+            # Récupération des stats d'un joueur via l'API
+            stats_data = BalldontlieService.get_player_stats(player_id=p['id'])
+            
+            # Valeurs par défaut si pas de stats
+            points = assists = rebounds = minutes = 0.0
+
+            if stats_data.get("data"):
+                last_stat = stats_data["data"][-1]  # Dernier match dispo
+                points = last_stat.get("pts", 0.0)
+                assists = last_stat.get("ast", 0.0)
+                rebounds = last_stat.get("reb", 0.0)
+                minutes = float(last_stat.get("min", "0").split(":")[0]) if last_stat.get("min") else 0.0
+
+            player = Player(
+                id=p['id'],
+                first_name=p['first_name'],
+                last_name=p['last_name'],
+                position=p['position'],
+                team_id=p['team']['id'] if p.get('team') else None,
+                height_feet=p.get('height_feet'),
+                height_inches=p.get('height_inches'),
+                weight_pounds=p.get('weight_pounds'),
+                points_per_game=points,
+                assists_per_game=assists,
+                rebounds_per_game=rebounds,
+                minutes_per_game=minutes,
                 created_at=datetime.utcnow()
             )
-            db.session.merge(game)
+
+            db.session.merge(player)
 
         db.session.commit()
 
-        total_pages = games_data.get("meta", {}).get("total_pages", 1)
-        if page < total_pages:
-            page += 1
-        else:
-            has_more = False
+        # Pagination
+        total_pages = players_data.get("meta", {}).get("total_pages", 1)
+        has_more = page < total_pages
+        page += 1
+
+    print("✅ Joueurs et statistiques synchronisés avec succès.")
+
 
 
 def get_current_nba_season():
